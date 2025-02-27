@@ -88,21 +88,21 @@
           };
         
           const exportToCSV = () => {
-            // Create CSV header - Airtable-friendly format
+            // Create CSV header - Airtable-friendly format with correct order
             const csvContent = [
-              ['Creator Handle', 'Creator URL', 'Client Price', 'Special Notes', 'Campaign', 'Client', 'Pitch ID']
+              ['Pitch ID', 'Campaign', 'Client', 'Creator Handle', 'Creator URL', 'Client Price', 'Special Notes']
             ];
             
-            // Add data rows
+            // Add data rows in the same order
             parsedData.forEach(item => {
               csvContent.push([
+                pitchId,
+                campaignName,
+                clientName,
                 item.handle,
                 item.url,
                 item.price,
-                item.notes,
-                campaignName,
-                clientName,
-                pitchId
+                item.notes
               ]);
             });
             
@@ -129,19 +129,18 @@
         
           const copyToClipboard = () => {
             // Format data as tab-separated values for direct paste into Airtable
-            const tsvContent = [
-              ['Creator Handle', 'Creator URL', 'Client Price', 'Special Notes', 'Campaign', 'Client', 'Pitch ID']
-            ];
+            // No headers, just data rows in the specified order
+            const tsvContent = [];
             
             parsedData.forEach(item => {
               tsvContent.push([
+                pitchId,
+                campaignName,
+                clientName,
                 item.handle,
                 item.url,
                 item.price,
-                item.notes,
-                campaignName,
-                clientName,
-                pitchId
+                item.notes
               ]);
             });
             
@@ -267,7 +266,7 @@
                       <li>Go to your Airtable Pitch Items table</li>
                       <li>Select the first cell where you want to paste</li>
                       <li>Press Ctrl+V (or Cmd+V on Mac) to paste</li>
-                      <li>Airtable will recognize the column headers and match them</li>
+                      <li>Make sure your Airtable columns are in this order: Pitch ID, Campaign, Client, Creator Handle, Creator URL, Client Price, Special Notes</li>
                     </ol>
                   </div>
                 </div>
