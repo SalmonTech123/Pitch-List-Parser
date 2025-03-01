@@ -20,6 +20,7 @@
         const PitchListParser = () => {
           const [inputText, setInputText] = React.useState('');
           const [parsedData, setParsedData] = React.useState([]);
+          const [pitchId, setPitchId] = React.useState('');
           const [campaignName, setCampaignName] = React.useState('');
           const [clientName, setClientName] = React.useState('');
           const [pitchId, setPitchId] = React.useState('');
@@ -27,6 +28,13 @@
           const parseInput = () => {
             const lines = inputText.split('\n').filter(line => line.trim() !== '');
             const result = [];
+            
+            // Generate a simple pitch ID if not provided
+            if (!pitchId) {
+              const date = new Date();
+              const formattedDate = `${date.getMonth()+1}${date.getDate()}${date.getFullYear().toString().slice(2)}`;
+              setPitchId(`PITCH-${formattedDate}-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`);
+            }
             
             // Generate a simple pitch ID if not provided
             if (!pitchId) {
@@ -154,8 +162,18 @@
             <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow">
               <h1 className="text-2xl font-bold mb-4">Salmon Studios Pitch List Parser</h1>
               
-              <div className="mb-2 text-sm text-gray-600">
-                <p>This tool extracts creator handles, prices, and notes from pitch lists. Additional data like Campaign, Client, and Pitch ID can be added in Airtable later.</p>
+              <div className="mb-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Pitch ID (optional)</label>
+                  <input
+                    type="text"
+                    className="w-full p-2 border rounded"
+                    value={pitchId}
+                    onChange={(e) => setPitchId(e.target.value)}
+                    placeholder="PITCH-MMDDYY-XXX"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">For your reference only - this ID won't be included in the Airtable data</p>
+                </div>
               </div>
               
               <div className="mb-4">
@@ -221,7 +239,12 @@
                   </div>
                   
                   <div className="mt-4 p-4 bg-gray-100 rounded">
-                    <p className="text-sm font-medium">Airtable Import Instructions:</p>
+                    <p className="text-sm font-medium">Pitch Information:</p>
+                    <p className="text-sm">Pitch ID: {pitchId}</p>
+                    <p className="text-sm">Created: {new Date().toLocaleDateString()}</p>
+                    <p className="text-sm">Total Creators: {parsedData.length}</p>
+                    
+                    <p className="text-sm font-medium mt-3">Airtable Import Instructions:</p>
                     <ol className="text-sm ml-5 list-decimal">
                       <li>Click "Copy for Airtable Paste" above</li>
                       <li>Go to your Airtable table</li>
