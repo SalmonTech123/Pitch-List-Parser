@@ -4,119 +4,344 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Salmon Studios Pitch List Parser</title>
-    <!-- React and ReactDOM -->
-    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 200px;
+            resize: vertical;
+        }
+        button {
+            background-color: #4a6cf7;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #3a5ce5;
+        }
+        button.secondary {
+            background-color: #4caf50;
+        }
+        button.secondary:hover {
+            background-color: #388e3c;
+        }
+        button.tertiary {
+            background-color: #9c27b0;
+        }
+        button.tertiary:hover {
+            background-color: #7b1fa2;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .success-message {
+            color: #388e3c;
+            margin-left: 10px;
+            font-weight: 500;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div id="root"></div>
-    
-    <script type="text/babel">
-        // React component
-        const PitchListParser = () => {
-          const [inputText, setInputText] = React.useState('');
-          const [parsedData, setParsedData] = React.useState([]);
-          const [pitchId, setPitchId] = React.useState('');
-          const [campaignName, setCampaignName] = React.useState('');
-          const [clientName, setClientName] = React.useState('');
-          const [pitchId, setPitchId] = React.useState('');
+<body>
+    <div class="container">
+        <h1>Salmon Studios Pitch List Parser</h1>
         
-          const parseInput = () => {
-            const lines = inputText.split('\n').filter(line => line.trim() !== '');
-            const result = [];
-            
-            // Generate a simple pitch ID if not provided
-            if (!pitchId) {
-              const date = new Date();
-              const formattedDate = `${date.getMonth()+1}${date.getDate()}${date.getFullYear().toString().slice(2)}`;
-              setPitchId(`PITCH-${formattedDate}-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`);
-            }
-            
-            // Generate a simple pitch ID if not provided
-            if (!pitchId) {
-              const date = new Date();
-              const formattedDate = `${date.getMonth()+1}${date.getDate()}${date.getFullYear().toString().slice(2)}`;
-              setPitchId(`PITCH-${formattedDate}-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`);
-            }
+        <div>
+            <label for="pitchId">Pitch ID (optional)</label>
+            <input type="text" id="pitchId" placeholder="PITCH-MMDDYY-XXX">
+            <p class="help-text">For your reference only - this ID won't be included in the Airtable data</p>
+        </div>
         
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i].trim();
-              
-              // Skip category headers and dividers
-              if (line.endsWith(':') || line === '/////') {
-                continue;
-              }
-              
-              // Check if this is a TikTok URL
-              if (line.includes('tiktok.com/@')) {
-                const handle = line.split('@')[1].split('?')[0].trim();
+        <div>
+            <label for="pitchList">Paste Pitch List</label>
+            <textarea id="pitchList" placeholder="Paste your pitch list here... (TikTok URLs and prices)"></textarea>
+        </div>
+        
+        <div>
+            <button id="parseButton">Parse Pitch List</button>
+            <span id="copySuccess" class="success-message" style="display: none;">Copied to clipboard!</span>
+        </div>
+        
+        <div id="results" style="display: none;">
+            <h2>Parsed Data</h2>
+            <p id="creatorCount"></p>
+            
+            <button id="copyButton" class="secondary">Copy for Airtable Paste</button>
+            <button id="exportButton" class="tertiary">Export to CSV</button>
+            
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Creator Handle</th>
+                        <th>Client Price</th>
+                        <th>Special Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data will be inserted here -->
+                </tbody>
+            </table>
+            
+            <div class="info-box">
+                <p><strong>Pitch Information:</strong></p>
+                <p id="pitchIdDisplay"></p>
+                <p id="createdDate"></p>
                 
-                // The next line should be the price and possibly notes
-                if (i + 1 < lines.length) {
-                  const priceLine = lines[i + 1].trim();
-                  let price = '';
-                  let notes = '';
-                  
-                  // Extract price
-                  if (priceLine.includes('$')) {
-                    price = priceLine.split('$')[1].split(' ')[0].trim();
-                    
-                    // Extract notes if any
-                    if (priceLine.includes('-')) {
-                      notes = priceLine.split('-')[1].trim();
-                    } else if (priceLine.includes(',')) {
-                      notes = priceLine.split(',').slice(1).join(',').trim();
-                    } else if (priceLine.split(' ').length > 1) {
-                      const priceText = priceLine.split('$')[0] + '$' + price;
-                      notes = priceLine.replace(priceText, '').trim();
-                    }
-                  }
-                  
-                  // Extract the creator handle for easy reference
-                  const creatorHandle = '@' + handle;
-                  
-                  result.push({
-                    handle: creatorHandle,
-                    url: line,
-                    price: price ? parseFloat(price) : 0,
-                    notes: notes
-                  });
-                  
-                  // Skip the price line since we've processed it
-                  i++;
-                }
-              }
+                <p><strong>Airtable Import Instructions:</strong></p>
+                <ol>
+                    <li>Click "Copy for Airtable Paste" above</li>
+                    <li>Go to your Airtable table</li>
+                    <li>Select the first cell where you want to paste</li>
+                    <li>Press Ctrl+V (or Cmd+V on Mac) to paste</li>
+                    <li>Make sure your Airtable columns are in this order: Creator Handle, Client Price, Special Notes</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let parsedData = [];
+        
+        // DOM elements
+        const pitchIdInput = document.getElementById('pitchId');
+        const pitchListInput = document.getElementById('pitchList');
+        const parseButton = document.getElementById('parseButton');
+        const copyButton = document.getElementById('copyButton');
+        const exportButton = document.getElementById('exportButton');
+        const resultsDiv = document.getElementById('results');
+        const tableBody = document.getElementById('tableBody');
+        const creatorCountElem = document.getElementById('creatorCount');
+        const pitchIdDisplay = document.getElementById('pitchIdDisplay');
+        const createdDateElem = document.getElementById('createdDate');
+        const copySuccess = document.getElementById('copySuccess');
+        
+        // Event listeners
+        parseButton.addEventListener('click', parseInput);
+        copyButton.addEventListener('click', copyToClipboard);
+        exportButton.addEventListener('click', exportToCSV);
+        
+        // Functions
+        function parseInput() {
+            const inputText = pitchListInput.value;
+            if (!inputText.trim()) {
+                alert('Please paste a pitch list first.');
+                return;
             }
             
-            setParsedData(result);
-          };
+            const lines = inputText.split('\n').filter(line => line.trim() !== '');
+            parsedData = [];
+            
+            // Generate a simple pitch ID if not provided
+            if (!pitchIdInput.value) {
+                const date = new Date();
+                const formattedDate = `${date.getMonth()+1}${date.getDate()}${date.getFullYear().toString().slice(2)}`;
+                const randomId = Math.floor(Math.random()*1000).toString().padStart(3, '0');
+                pitchIdInput.value = `PITCH-${formattedDate}-${randomId}`;
+            }
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Skip category headers and dividers
+                if (line.endsWith(':') || line === '/////') {
+                    continue;
+                }
+                
+                // Check if this is a TikTok URL
+                if (line.includes('tiktok.com/@')) {
+                    const handle = line.split('@')[1].split('?')[0].trim();
+                    
+                    // The next line should be the price and possibly notes
+                    if (i + 1 < lines.length) {
+                        const priceLine = lines[i + 1].trim();
+                        let price = '';
+                        let notes = '';
+                        
+                        // Extract price
+                        if (priceLine.includes('$')) {
+                            price = priceLine.split('$')[1].split(' ')[0].trim();
+                            
+                            // Extract notes if any
+                            if (priceLine.includes('-')) {
+                                notes = priceLine.split('-')[1].trim();
+                            } else if (priceLine.includes(',')) {
+                                notes = priceLine.split(',').slice(1).join(',').trim();
+                            } else if (priceLine.split(' ').length > 1) {
+                                const priceText = priceLine.split('$')[0] + '$' + price;
+                                notes = priceLine.replace(priceText, '').trim();
+                            }
+                        }
+                        
+                        // Extract the creator handle for easy reference
+                        const creatorHandle = '@' + handle;
+                        
+                        parsedData.push({
+                            handle: creatorHandle,
+                            url: line,
+                            price: price ? parseFloat(price) : 0,
+                            notes: notes
+                        });
+                        
+                        // Skip the price line since we've processed it
+                        i++;
+                    }
+                }
+            }
+            
+            displayResults();
+        }
         
-          const exportToCSV = () => {
-            // Create CSV header - Simplified format
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
             const csvContent = [
-              ['Creator Handle', 'Client Price', 'Special Notes']
+                ['Creator Handle', 'Client Price', 'Special Notes']
             ];
             
-            // Add data rows with simplified structure
+            // Add data rows
             parsedData.forEach(item => {
-              csvContent.push([
-                item.handle,
-                item.price,
-                item.notes
-              ]);
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
             });
             
             // Convert to CSV string
             const csv = csvContent.map(row => 
-              row.map(cell => 
-                typeof cell === 'string' && cell.includes(',') 
-                  ? `"${cell}"` 
-                  : cell
-              ).join(',')
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
             ).join('\n');
             
             // Create download link
@@ -125,142 +350,11 @@
             const a = document.createElement('a');
             a.setAttribute('hidden', '');
             a.setAttribute('href', url);
-            a.setAttribute('download', `pitch-list-${pitchId}.csv`);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-          };
-        
-          const copyToClipboard = () => {
-            // Format data as tab-separated values for direct paste into Airtable
-            // Simplified output with just creator, price, and notes
-            const tsvContent = [];
-            
-            parsedData.forEach(item => {
-              tsvContent.push([
-                item.handle,
-                item.price,
-                item.notes
-              ]);
-            });
-            
-            // Convert to TSV string (better for clipboard)
-            const tsv = tsvContent.map(row => row.join('\t')).join('\n');
-            
-            // Copy to clipboard
-            navigator.clipboard.writeText(tsv)
-              .then(() => {
-                alert('Data copied to clipboard! You can now paste directly into Airtable.');
-              })
-              .catch(err => {
-                console.error('Failed to copy: ', err);
-                alert('Failed to copy to clipboard. Please use the CSV export instead.');
-              });
-          };
-        
-          return (
-            <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow">
-              <h1 className="text-2xl font-bold mb-4">Salmon Studios Pitch List Parser</h1>
-              
-              <div className="mb-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Pitch ID (optional)</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={pitchId}
-                    onChange={(e) => setPitchId(e.target.value)}
-                    placeholder="PITCH-MMDDYY-XXX"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">For your reference only - this ID won't be included in the Airtable data</p>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Paste Pitch List</label>
-                <textarea
-                  className="w-full p-2 border rounded h-64"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Paste your pitch list here... (TikTok URLs and prices)"
-                />
-              </div>
-              
-              <div className="flex flex-wrap gap-2 mb-6">
-                <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                  onClick={parseInput}
-                >
-                  Parse Pitch List
-                </button>
-                
-                {parsedData.length > 0 && (
-                  <>
-                    <button
-                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-                      onClick={exportToCSV}
-                    >
-                      Export to CSV
-                    </button>
-                    <button
-                      className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
-                      onClick={copyToClipboard}
-                    >
-                      Copy for Airtable Paste
-                    </button>
-                  </>
-                )}
-              </div>
-              
-              {parsedData.length > 0 && (
-                <div className="mt-4">
-                  <h2 className="text-xl font-bold mb-2">Parsed Data</h2>
-                  <p className="mb-4 text-sm">Found {parsedData.length} creators ready for Airtable</p>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white border">
-                      <thead>
-                        <tr>
-                          <th className="py-2 px-4 border">Handle</th>
-                          <th className="py-2 px-4 border">Client Price</th>
-                          <th className="py-2 px-4 border">Special Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {parsedData.map((item, index) => (
-                          <tr key={index}>
-                            <td className="py-2 px-4 border">{item.handle}</td>
-                            <td className="py-2 px-4 border">${item.price}</td>
-                            <td className="py-2 px-4 border">{item.notes}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  <div className="mt-4 p-4 bg-gray-100 rounded">
-                    <p className="text-sm font-medium">Pitch Information:</p>
-                    <p className="text-sm">Pitch ID: {pitchId}</p>
-                    <p className="text-sm">Created: {new Date().toLocaleDateString()}</p>
-                    <p className="text-sm">Total Creators: {parsedData.length}</p>
-                    
-                    <p className="text-sm font-medium mt-3">Airtable Import Instructions:</p>
-                    <ol className="text-sm ml-5 list-decimal">
-                      <li>Click "Copy for Airtable Paste" above</li>
-                      <li>Go to your Airtable table</li>
-                      <li>Select the first cell where you want to paste</li>
-                      <li>Press Ctrl+V (or Cmd+V on Mac) to paste</li>
-                      <li>Make sure your Airtable columns are in this order: Creator Handle, Client Price, Special Notes</li>
-                    </ol>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        };
-        
-        // Render the React component
-        ReactDOM.render(<PitchListParser />, document.getElementById('root'));
+        }
     </script>
 </body>
 </html>
