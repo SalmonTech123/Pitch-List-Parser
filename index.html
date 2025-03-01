@@ -88,19 +88,15 @@
           };
         
           const exportToCSV = () => {
-            // Create CSV header - Airtable-friendly format with correct order
+            // Create CSV header - Simplified format
             const csvContent = [
-              ['Pitch ID', 'Campaign', 'Client', 'Creator Handle', 'Creator URL', 'Client Price', 'Special Notes']
+              ['Creator Handle', 'Client Price', 'Special Notes']
             ];
             
-            // Add data rows in the same order
+            // Add data rows with simplified structure
             parsedData.forEach(item => {
               csvContent.push([
-                pitchId,
-                campaignName,
-                clientName,
                 item.handle,
-                item.url,
                 item.price,
                 item.notes
               ]);
@@ -129,16 +125,12 @@
         
           const copyToClipboard = () => {
             // Format data as tab-separated values for direct paste into Airtable
-            // No headers, just data rows in the specified order
+            // Simplified output with just creator, price, and notes
             const tsvContent = [];
             
             parsedData.forEach(item => {
               tsvContent.push([
-                pitchId,
-                campaignName,
-                clientName,
                 item.handle,
-                item.url,
                 item.price,
                 item.notes
               ]);
@@ -162,39 +154,8 @@
             <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow">
               <h1 className="text-2xl font-bold mb-4">Salmon Studios Pitch List Parser</h1>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Campaign Name</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={campaignName}
-                    onChange={(e) => setCampaignName(e.target.value)}
-                    placeholder="Song/Artist or Brand Campaign"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">Client Name</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Client Name"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">Pitch ID (optional)</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={pitchId}
-                    onChange={(e) => setPitchId(e.target.value)}
-                    placeholder="PITCH-MMDDYY-XXX"
-                  />
-                </div>
+              <div className="mb-2 text-sm text-gray-600">
+                <p>This tool extracts creator handles, prices, and notes from pitch lists. Additional data like Campaign, Client, and Pitch ID can be added in Airtable later.</p>
               </div>
               
               <div className="mb-4">
@@ -263,10 +224,10 @@
                     <p className="text-sm font-medium">Airtable Import Instructions:</p>
                     <ol className="text-sm ml-5 list-decimal">
                       <li>Click "Copy for Airtable Paste" above</li>
-                      <li>Go to your Airtable Pitch Items table</li>
+                      <li>Go to your Airtable table</li>
                       <li>Select the first cell where you want to paste</li>
                       <li>Press Ctrl+V (or Cmd+V on Mac) to paste</li>
-                      <li>Make sure your Airtable columns are in this order: Pitch ID, Campaign, Client, Creator Handle, Creator URL, Client Price, Special Notes</li>
+                      <li>Make sure your Airtable columns are in this order: Creator Handle, Client Price, Special Notes</li>
                     </ol>
                   </div>
                 </div>
