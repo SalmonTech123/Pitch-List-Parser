@@ -101,7 +101,7 @@
         <h1>Salmon Studios Pitch List Parser</h1>
         
         <div>
-            <label for="pitchId">Pitch ID </label>
+            <label for="pitchId">Pitch ID (optional)</label>
             <input type="text" id="pitchId" placeholder="PITCH-MMDDYY-XXX">
             <p class="help-text">For your reference only - this ID won't be included in the Airtable data</p>
         </div>
@@ -212,9 +212,883 @@
                         let price = '';
                         let notes = '';
                         
-                        // Extract price
-                        if (priceLine.includes('$')) {
-                            price = priceLine.split('$')[1].split(' ')[0].trim();
+                        // Check if this is a creator URL or an example link
+                        if (!priceLine.includes('
+                }
+            }
+            
+            displayResults();
+        }
+        
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            parsedData.forEach(item => {
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
+) && priceLine.includes('tiktok.com/')) {
+                            // This might be an example link - look ahead for the next non-URL line
+                            let j = i + 1;
+                            while (j < lines.length && lines[j].includes('tiktok.com/')) {
+                                j++;
+                            }
+                            
+                            // If we found a line that's not a URL, and it has price info, use it
+                            if (j < lines.length && lines[j].includes('
+                }
+            }
+            
+            displayResults();
+        }
+        
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            parsedData.forEach(item => {
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
+)) {
+                                const actualPriceLine = lines[j].trim();
+                                
+                                // Extract price
+                                price = actualPriceLine.split('
+                }
+            }
+            
+            displayResults();
+        }
+        
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            parsedData.forEach(item => {
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
+)[1].split(' ')[0].trim();
+                                
+                                // Extract notes and include example links
+                                let exampleLinks = '';
+                                for (let k = i + 1; k < j; k++) {
+                                    exampleLinks += `Example: ${lines[k].trim()} `;
+                                }
+                                
+                                if (actualPriceLine.includes('-')) {
+                                    notes = actualPriceLine.split('-')[1].trim();
+                                } else if (actualPriceLine.includes(',')) {
+                                    notes = actualPriceLine.split(',').slice(1).join(',').trim();
+                                } else if (actualPriceLine.split(' ').length > 1) {
+                                    const priceText = actualPriceLine.split('
+                }
+            }
+            
+            displayResults();
+        }
+        
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            parsedData.forEach(item => {
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
+)[0] + '
+                }
+            }
+            
+            displayResults();
+        }
+        
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            parsedData.forEach(item => {
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
+ + price;
+                                    notes = actualPriceLine.replace(priceText, '').trim();
+                                }
+                                
+                                // Add example links to notes
+                                if (exampleLinks && notes) {
+                                    notes = notes + ' ' + exampleLinks;
+                                } else if (exampleLinks) {
+                                    notes = exampleLinks;
+                                }
+                                
+                                // Skip all the lines we've processed
+                                i = j;
+                            }
+                        } else if (priceLine.includes('
+                }
+            }
+            
+            displayResults();
+        }
+        
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            parsedData.forEach(item => {
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
+)) {
+                            // Standard case - next line has price info
+                            // Extract price
+                            price = priceLine.split('
+                }
+            }
+            
+            displayResults();
+        }
+        
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            parsedData.forEach(item => {
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
+)[1].split(' ')[0].trim();
                             
                             // Extract notes if any
                             if (priceLine.includes('-')) {
@@ -222,23 +1096,274 @@
                             } else if (priceLine.includes(',')) {
                                 notes = priceLine.split(',').slice(1).join(',').trim();
                             } else if (priceLine.split(' ').length > 1) {
-                                const priceText = priceLine.split('$')[0] + '$' + price;
+                                const priceText = priceLine.split('
+                }
+            }
+            
+            displayResults();
+        }
+        
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            parsedData.forEach(item => {
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
+)[0] + '
+                }
+            }
+            
+            displayResults();
+        }
+        
+        function displayResults() {
+            if (parsedData.length === 0) {
+                alert('No valid creator data found. Please check your input format.');
+                return;
+            }
+            
+            // Update counts
+            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            
+            // Update info
+            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
+            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            tableBody.innerHTML = '';
+            
+            // Populate table
+            parsedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const handleCell = document.createElement('td');
+                handleCell.textContent = item.handle;
+                
+                const priceCell = document.createElement('td');
+                priceCell.textContent = '$' + item.price;
+                
+                const notesCell = document.createElement('td');
+                notesCell.textContent = item.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            try {
+                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                let clipboardText = '';
+                
+                // Build TSV string manually to ensure it's correct
+                parsedData.forEach(item => {
+                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                });
+                
+                // Remove trailing newline
+                if (clipboardText.endsWith('\n')) {
+                    clipboardText = clipboardText.slice(0, -1);
+                }
+                
+                // Use execCommand for better compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show success message
+                copySuccess.style.display = 'inline';
+                setTimeout(() => {
+                    copySuccess.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error in copyToClipboard:', error);
+                alert('An error occurred. Please try the CSV export instead.');
+            }
+        }
+        
+        function exportToCSV() {
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            parsedData.forEach(item => {
+                csvContent.push([
+                    item.handle,
+                    item.price,
+                    item.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
+ + price;
                                 notes = priceLine.replace(priceText, '').trim();
                             }
+                            
+                            // Look ahead for example links
+                            let nextLine = i + 2;
+                            while (nextLine < lines.length && 
+                                  (lines[nextLine].includes('example') || 
+                                   lines[nextLine].includes('tiktok.com/'))) {
+                                notes += ' Example: ' + lines[nextLine].trim();
+                                i++;
+                                nextLine++;
+                            }
+                            
+                            // Skip the price line
+                            i++;
                         }
                         
                         // Extract the creator handle for easy reference
                         const creatorHandle = '@' + handle;
                         
-                        parsedData.push({
-                            handle: creatorHandle,
-                            url: line,
-                            price: price ? parseFloat(price) : 0,
-                            notes: notes
-                        });
-                        
-                        // Skip the price line since we've processed it
-                        i++;
+                        // Only add if we found a price (to avoid adding example links as creators)
+                        if (price) {
+                            parsedData.push({
+                                handle: creatorHandle,
+                                url: line,
+                                price: parseFloat(price) || 0,
+                                notes: notes.trim()
+                            });
+                        }
                     }
                 }
             }
