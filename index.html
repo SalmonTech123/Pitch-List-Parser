@@ -109,7 +109,7 @@
         
         <div>
             <label for="pitchList">Paste Pitch List</label>
-            <textarea id="pitchList" placeholder="Paste your pitch list here... (TikTok URLs and prices)"></textarea>
+            <textarea id="pitchList" placeholder="Paste your pitch list here... (TikTok URLs, countries, and prices)"></textarea>
         </div>
         
         <div>
@@ -128,6 +128,7 @@
                 <thead>
                     <tr>
                         <th>Creator Handle</th>
+                        <th>Country</th>
                         <th>Client Price</th>
                         <th>Special Notes</th>
                     </tr>
@@ -148,7 +149,7 @@
                     <li>Go to your Airtable table</li>
                     <li>Select the first cell where you want to paste</li>
                     <li>Press Ctrl+V (or Cmd+V on Mac) to paste</li>
-                    <li>Make sure your Airtable columns are in this order: Creator Handle, Client Price, Special Notes</li>
+                    <li>Make sure your Airtable columns are in this order: Creator Handle, Country, Client Price, Special Notes</li>
                 </ol>
             </div>
         </div>
@@ -215,6 +216,7 @@
                         let j = i + 1;
                         let priceFound = false;
                         let price = 0;
+                        let country = '';
                         let notes = '';
                         let examples = [];
                         
@@ -238,13 +240,24 @@
                                     price = parseFloat(priceStr) || 0;
                                 }
                                 
+                                // Try to extract country if present (before the $ sign)
+                                if (priceParts[0].trim() !== '') {
+                                    country = priceParts[0].trim();
+                                }
+                                
                                 // Extract notes
                                 if (nextLine.includes('-')) {
                                     notes = nextLine.split('-')[1].trim();
                                 } else if (nextLine.includes(',')) {
                                     notes = nextLine.split(',').slice(1).join(',').trim();
                                 } else {
-                                    const priceText = nextLine.split('$')[0] + '$' + price;
+                                    // Remove the country and price part from the line to get notes
+                                    let priceText = '';
+                                    if (country) {
+                                        priceText = country + ' $' + price;
+                                    } else {
+                                        priceText = '$' + price;
+                                    }
                                     notes = nextLine.replace(priceText, '').trim();
                                 }
                                 
@@ -270,6 +283,7 @@
                             // Add to parsed data
                             parsedData.push({
                                 handle,
+                                country,
                                 price,
                                 notes
                             });
@@ -305,6 +319,9 @@
                 const handleCell = document.createElement('td');
                 handleCell.textContent = item.handle;
                 
+                const countryCell = document.createElement('td');
+                countryCell.textContent = item.country;
+                
                 const priceCell = document.createElement('td');
                 priceCell.textContent = '$' + item.price;
                 
@@ -312,6 +329,7 @@
                 notesCell.textContent = item.notes;
                 
                 row.appendChild(handleCell);
+                row.appendChild(countryCell);
                 row.appendChild(priceCell);
                 row.appendChild(notesCell);
                 
@@ -324,12 +342,12 @@
         
         function copyToClipboard() {
             try {
-                // ONLY include the three fields: Creator Handle, Client Price, Special Notes
+                // Include the four fields: Creator Handle, Country, Client Price, Special Notes
                 let clipboardText = '';
                 
                 // Build TSV string manually to ensure it's correct
                 parsedData.forEach(item => {
-                    clipboardText += item.handle + '\t' + item.price + '\t' + item.notes + '\n';
+                    clipboardText += item.handle + '\t' + item.country + '\t' + item.price + '\t' + item.notes + '\n';
                 });
                 
                 // Remove trailing newline
@@ -364,13 +382,14 @@
         function exportToCSV() {
             // Create CSV header
             const csvContent = [
-                ['Creator Handle', 'Client Price', 'Special Notes']
+                ['Creator Handle', 'Country', 'Client Price', 'Special Notes']
             ];
             
             // Add data rows
             parsedData.forEach(item => {
                 csvContent.push([
                     item.handle,
+                    item.country,
                     item.price,
                     item.notes
                 ]);
