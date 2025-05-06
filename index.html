@@ -10,7 +10,6 @@
             background-color: #f5f5f5;
             margin: 0;
             padding: 20px;
-            line-height: 1.5;
         }
         .container {
             max-width: 800px;
@@ -20,26 +19,17 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        h1 {
-            margin-top: 0;
+        h1, h2 {
             color: #333;
         }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        input, textarea {
+        textarea {
             width: 100%;
-            padding: 8px;
-            margin-bottom: 15px;
+            height: 200px;
+            padding: 10px;
+            margin-bottom: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            box-sizing: border-box;
-        }
-        textarea {
-            height: 200px;
-            resize: vertical;
+            font-family: monospace;
         }
         button {
             background-color: #4a6cf7;
@@ -49,370 +39,207 @@
             border-radius: 4px;
             cursor: pointer;
             margin-right: 10px;
-            margin-bottom: 10px;
         }
         button:hover {
             background-color: #3a5ce5;
         }
-        button.secondary {
+        button.green {
             background-color: #4caf50;
         }
-        button.secondary:hover {
+        button.green:hover {
             background-color: #388e3c;
-        }
-        button.tertiary {
-            background-color: #9c27b0;
-        }
-        button.tertiary:hover {
-            background-color: #7b1fa2;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin: 20px 0;
         }
         th, td {
-            padding: 10px;
-            text-align: left;
             border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
         }
         th {
             background-color: #f2f2f2;
         }
-        .info-box {
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-        .success-message {
-            color: #388e3c;
-            margin-left: 10px;
-            font-weight: 500;
-        }
-        .help-text {
-            font-size: 12px;
-            color: #666;
-            margin-top: 2px;
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Salmon Studios Pitch List Parser</h1>
+        <h1>Pitch List Parser</h1>
         
         <div>
-            <label for="pitchId">Pitch ID (optional)</label>
-            <input type="text" id="pitchId" placeholder="PITCH-MMDDYY-XXX">
-            <p class="help-text">For your reference only - this ID won't be included in the Airtable data</p>
+            <p>Paste your TikTok pitch list below:</p>
+            <textarea id="input" placeholder="Paste your pitch list here..."></textarea>
         </div>
         
-        <div>
-            <label for="pitchList">Paste Pitch List</label>
-            <textarea id="pitchList" placeholder="Paste your pitch list here... (TikTok URLs, countries, and prices)"></textarea>
-        </div>
+        <button id="parseBtn">Parse Pitch List</button>
         
-        <div>
-            <button id="parseButton">Parse Pitch List</button>
-            <span id="copySuccess" class="success-message" style="display: none;">Copied to clipboard!</span>
-        </div>
-        
-        <div id="results" style="display: none;">
-            <h2>Parsed Data</h2>
-            <p id="creatorCount"></p>
+        <div id="results" class="hidden">
+            <h2>Results</h2>
+            <p id="count"></p>
             
-            <button id="copyButton" class="secondary">Copy for Airtable Paste</button>
-            <button id="exportButton" class="tertiary">Export to CSV</button>
+            <button id="copyBtn" class="green">Copy for Airtable</button>
+            <span id="copySuccess" style="display:none; color:green; margin-left:10px;">Copied!</span>
             
-            <table id="dataTable">
+            <table>
                 <thead>
                     <tr>
                         <th>Creator Handle</th>
-                        <th>Country</th>
-                        <th>Client Price</th>
-                        <th>Special Notes</th>
+                        <th>Price</th>
+                        <th>Notes</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody">
-                    <!-- Data will be inserted here -->
-                </tbody>
+                <tbody id="tableBody"></tbody>
             </table>
-            
-            <div class="info-box">
-                <p><strong>Pitch Information:</strong></p>
-                <p id="pitchIdDisplay"></p>
-                <p id="createdDate"></p>
-                
-                <p><strong>Airtable Import Instructions:</strong></p>
-                <ol>
-                    <li>Click "Copy for Airtable Paste" above</li>
-                    <li>Go to your Airtable table</li>
-                    <li>Select the first cell where you want to paste</li>
-                    <li>Press Ctrl+V (or Cmd+V on Mac) to paste</li>
-                    <li>Make sure your Airtable columns are in this order: Creator Handle, Country, Client Price, Special Notes</li>
-                </ol>
-            </div>
         </div>
     </div>
 
     <script>
-        // Global variables
-        let parsedData = [];
+        document.getElementById("parseBtn").addEventListener("click", parsePitchList);
+        document.getElementById("copyBtn").addEventListener("click", copyToClipboard);
         
-        // DOM elements
-        const pitchIdInput = document.getElementById('pitchId');
-        const pitchListInput = document.getElementById('pitchList');
-        const parseButton = document.getElementById('parseButton');
-        const copyButton = document.getElementById('copyButton');
-        const exportButton = document.getElementById('exportButton');
-        const resultsDiv = document.getElementById('results');
-        const tableBody = document.getElementById('tableBody');
-        const creatorCountElem = document.getElementById('creatorCount');
-        const pitchIdDisplay = document.getElementById('pitchIdDisplay');
-        const createdDateElem = document.getElementById('createdDate');
-        const copySuccess = document.getElementById('copySuccess');
-        
-        // Event listeners
-        parseButton.addEventListener('click', parseInput);
-        copyButton.addEventListener('click', copyToClipboard);
-        exportButton.addEventListener('click', exportToCSV);
-        
-        // Functions
-        function parseInput() {
-            const inputText = pitchListInput.value;
-            if (!inputText.trim()) {
-                alert('Please paste a pitch list first.');
+        function parsePitchList() {
+            const input = document.getElementById("input").value.trim();
+            if (!input) {
+                alert("Please paste a pitch list first.");
                 return;
             }
             
-            const lines = inputText.split('\n').filter(line => line.trim() !== '');
-            parsedData = [];
+            // Split by lines and remove empty lines
+            const lines = input.split("\n").map(line => line.trim()).filter(line => line);
+            const creators = [];
             
-            // Generate a simple pitch ID if not provided
-            if (!pitchIdInput.value) {
-                const date = new Date();
-                const formattedDate = `${date.getMonth()+1}${date.getDate()}${date.getFullYear().toString().slice(2)}`;
-                const randomId = Math.floor(Math.random()*1000).toString().padStart(3, '0');
-                pitchIdInput.value = `PITCH-${formattedDate}-${randomId}`;
-            }
+            console.log("Processing", lines.length, "lines");
             
-            // Process each line
             for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
+                const line = lines[i];
                 
-                // Skip category headers and dividers
-                if (line.endsWith(':') || line === '/////') {
+                // Skip category headings and dividers
+                if (line.endsWith(":") || line === "/////") {
+                    console.log("Skipping category or divider:", line);
                     continue;
                 }
                 
                 // Check if this is a TikTok URL
-                if (line.includes('tiktok.com/@')) {
-                    // Extract creator handle
-                    const handleParts = line.split('@');
-                    if (handleParts.length > 1) {
-                        const handle = '@' + handleParts[1].split('?')[0].trim();
+                if (line.includes("tiktok.com")) {
+                    console.log("Found TikTok URL:", line);
+                    let handle = "";
+                    
+                    // Try to extract handle
+                    if (line.includes("@")) {
+                        handle = "@" + line.split("@")[1].split("?")[0];
+                        console.log("Extracted handle:", handle);
+                    }
+                    
+                    // Look for price on the next line
+                    if (i + 1 < lines.length) {
+                        const nextLine = lines[i + 1];
                         
-                        // Find price info (maybe not on the next line)
-                        let j = i + 1;
-                        let priceFound = false;
-                        let price = 0;
-                        let country = '';
-                        let notes = '';
-                        let examples = [];
-                        
-                        // Look ahead for price and notes
-                        while (j < lines.length && !priceFound) {
-                            const nextLine = lines[j].trim();
+                        // Check if the next line has a price (contains $)
+                        if (nextLine.includes("$")) {
+                            console.log("Found price line:", nextLine);
                             
-                            // If we hit a new creator or category, stop looking
-                            if (nextLine.includes('tiktok.com/@') && !nextLine.toLowerCase().includes('example')) {
-                                break;
+                            // Extract price
+                            let price = 0;
+                            const priceMatch = nextLine.match(/\$(\d+)/);
+                            if (priceMatch && priceMatch[1]) {
+                                price = parseInt(priceMatch[1], 10);
+                                console.log("Extracted price:", price);
                             }
                             
-                            // If we find price info
-                            if (nextLine.includes('$')) {
-                                priceFound = true;
-                                
-                                // Extract price
-                                const priceParts = nextLine.split('$');
-                                if (priceParts.length > 1) {
-                                    const priceStr = priceParts[1].split(/\s|,|-/)[0].trim();
-                                    price = parseFloat(priceStr) || 0;
-                                }
-                                
-                                // Try to extract country if present (before the $ sign)
-                                if (priceParts[0].trim() !== '') {
-                                    country = priceParts[0].trim();
-                                }
-                                
-                                // Extract notes
-                                if (nextLine.includes('-')) {
-                                    notes = nextLine.split('-')[1].trim();
-                                } else if (nextLine.includes(',')) {
-                                    notes = nextLine.split(',').slice(1).join(',').trim();
-                                } else {
-                                    // Remove the country and price part from the line to get notes
-                                    let priceText = '';
-                                    if (country) {
-                                        priceText = country + ' $' + price;
-                                    } else {
-                                        priceText = '$' + price;
-                                    }
-                                    notes = nextLine.replace(priceText, '').trim();
-                                }
-                                
-                                i = j; // Skip to this line
-                            } 
-                            // If we find an example link, store it
-                            else if (nextLine.includes('tiktok.com/') || 
-                                     nextLine.toLowerCase().includes('example')) {
-                                examples.push(nextLine);
+                            // Extract notes (everything after the price)
+                            let notes = "";
+                            if (nextLine.includes("-")) {
+                                notes = nextLine.split("-")[1].trim();
+                            } else if (nextLine.includes(",")) {
+                                notes = nextLine.split(",")[1].trim();
                             }
+                            console.log("Extracted notes:", notes);
                             
-                            j++;
-                        }
-                        
-                        // If we found price info, add the record
-                        if (priceFound) {
-                            // Add examples to notes if any
-                            if (examples.length > 0) {
-                                if (notes) notes += ' ';
-                                notes += 'Examples: ' + examples.join(' | ');
-                            }
-                            
-                            // Add to parsed data
-                            parsedData.push({
-                                handle,
-                                country,
-                                price,
-                                notes
+                            // Add to creators array
+                            creators.push({
+                                handle: handle,
+                                price: price,
+                                notes: notes
                             });
+                            
+                            // Skip the processed price line
+                            i++;
                         }
                     }
                 }
             }
             
-            // Display results
-            displayResults();
-        }
-        
-        function displayResults() {
-            if (parsedData.length === 0) {
-                alert('No valid creator data found. Please check your input format.');
+            console.log("Found", creators.length, "creators");
+            
+            if (creators.length === 0) {
+                alert("No creators found. Please check the format of your pitch list.");
                 return;
             }
             
-            // Update counts
-            creatorCountElem.textContent = `Found ${parsedData.length} creators ready for Airtable`;
+            // Display results
+            const tableBody = document.getElementById("tableBody");
+            tableBody.innerHTML = "";
             
-            // Update info
-            pitchIdDisplay.textContent = `Pitch ID: ${pitchIdInput.value}`;
-            createdDateElem.textContent = `Created: ${new Date().toLocaleDateString()}`;
-            
-            // Clear existing table data
-            tableBody.innerHTML = '';
-            
-            // Populate table
-            parsedData.forEach(item => {
-                const row = document.createElement('tr');
+            creators.forEach(creator => {
+                const row = document.createElement("tr");
                 
-                const handleCell = document.createElement('td');
-                handleCell.textContent = item.handle;
+                const handleCell = document.createElement("td");
+                handleCell.textContent = creator.handle;
                 
-                const countryCell = document.createElement('td');
-                countryCell.textContent = item.country;
+                const priceCell = document.createElement("td");
+                priceCell.textContent = "$" + creator.price;
                 
-                const priceCell = document.createElement('td');
-                priceCell.textContent = '$' + item.price;
-                
-                const notesCell = document.createElement('td');
-                notesCell.textContent = item.notes;
+                const notesCell = document.createElement("td");
+                notesCell.textContent = creator.notes;
                 
                 row.appendChild(handleCell);
-                row.appendChild(countryCell);
                 row.appendChild(priceCell);
                 row.appendChild(notesCell);
                 
                 tableBody.appendChild(row);
             });
             
-            // Show results
-            resultsDiv.style.display = 'block';
+            document.getElementById("count").textContent = `Found ${creators.length} creators`;
+            document.getElementById("results").classList.remove("hidden");
+            
+            // Store creators for copy function
+            window.parsedCreators = creators;
         }
         
         function copyToClipboard() {
-            try {
-                // Include the four fields: Creator Handle, Country, Client Price, Special Notes
-                let clipboardText = '';
-                
-                // Build TSV string manually to ensure it's correct
-                parsedData.forEach(item => {
-                    clipboardText += item.handle + '\t' + item.country + '\t' + item.price + '\t' + item.notes + '\n';
-                });
-                
-                // Remove trailing newline
-                if (clipboardText.endsWith('\n')) {
-                    clipboardText = clipboardText.slice(0, -1);
-                }
-                
-                // Create a text area element to hold the text
-                const textArea = document.createElement('textarea');
-                textArea.value = clipboardText;
-                textArea.style.position = 'fixed';  // Make it invisible
-                document.body.appendChild(textArea);
-                textArea.select();
-                
-                // Copy the text
-                document.execCommand('copy');
-                
-                // Clean up
-                document.body.removeChild(textArea);
-                
-                // Show success message
-                copySuccess.style.display = 'inline';
-                setTimeout(() => {
-                    copySuccess.style.display = 'none';
-                }, 3000);
-            } catch (error) {
-                console.error('Error in copyToClipboard:', error);
-                alert('An error occurred. Please try the CSV export instead.');
+            if (!window.parsedCreators || window.parsedCreators.length === 0) {
+                alert("No data to copy. Please parse pitch list first.");
+                return;
             }
-        }
-        
-        function exportToCSV() {
-            // Create CSV header
-            const csvContent = [
-                ['Creator Handle', 'Country', 'Client Price', 'Special Notes']
-            ];
             
-            // Add data rows
-            parsedData.forEach(item => {
-                csvContent.push([
-                    item.handle,
-                    item.country,
-                    item.price,
-                    item.notes
-                ]);
+            // Create tab-separated values for Airtable
+            let text = "";
+            window.parsedCreators.forEach(creator => {
+                text += `${creator.handle}\t${creator.price}\t${creator.notes}\n`;
             });
             
-            // Convert to CSV string
-            const csv = csvContent.map(row => 
-                row.map(cell => 
-                    typeof cell === 'string' && cell.includes(',') 
-                        ? `"${cell}"` 
-                        : cell
-                ).join(',')
-            ).join('\n');
+            // Remove last newline
+            text = text.trim();
             
-            // Create download link
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `pitch-list-${pitchIdInput.value}.csv`);
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            // Copy to clipboard
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            
+            // Show success message
+            const copySuccess = document.getElementById("copySuccess");
+            copySuccess.style.display = "inline";
+            setTimeout(() => {
+                copySuccess.style.display = "none";
+            }, 2000);
         }
     </script>
 </body>
