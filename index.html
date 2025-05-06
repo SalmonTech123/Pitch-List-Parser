@@ -65,11 +65,28 @@
         .hidden {
             display: none;
         }
+        .select-container {
+            margin-bottom: 10px;
+        }
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Pitch List Parser</h1>
+        
+        <div class="select-container">
+            <label for="format">Pitch Format:</label>
+            <select id="format">
+                <option value="auto" selected>Auto-Detect</option>
+                <option value="standard">Standard Format (Price on next line)</option>
+                <option value="inline">Inline Format (Price in parentheses)</option>
+            </select>
+        </div>
         
         <div>
             <p>Paste your TikTok pitch list below:</p>
@@ -81,6 +98,7 @@
         <div id="results" class="hidden">
             <h2>Results</h2>
             <p id="count"></p>
+            <p id="formatDetected" style="color: #4a6cf7;"></p>
             
             <button id="copyBtn" class="green">Copy for Airtable</button>
             <span id="copySuccess" style="display:none; color:green; margin-left:10px;">Copied!</span>
@@ -109,11 +127,79 @@
                 return;
             }
             
+            const formatSelect = document.getElementById("format").value;
+            
             // Split by lines and remove empty lines
             const lines = input.split("\n").map(line => line.trim()).filter(line => line);
-            const creators = [];
+            let creators = [];
+            let formatDetected = "Not detected";
             
             console.log("Processing", lines.length, "lines");
+            console.log("Selected format:", formatSelect);
+            
+            // Auto-detect format
+            if (formatSelect === "auto") {
+                // Check if more than 50% of lines with TikTok URLs contain parentheses with numbers
+                const tiktokLines = lines.filter(line => line.includes("tiktok.com"));
+                const inlineFormatLines = tiktokLines.filter(line => line.match(/\(\$\d+\)/));
+                
+                if (inlineFormatLines.length > 0 && inlineFormatLines.length / tiktokLines.length >= 0.5) {
+                    console.log("Auto-detected inline format");
+                    creators = parseInlineFormat(lines);
+                    formatDetected = "Inline Format (Price in parentheses)";
+                } else {
+                    console.log("Auto-detected standard format");
+                    creators = parseStandardFormat(lines);
+                    formatDetected = "Standard Format (Price on next line)";
+                }
+            } else if (formatSelect === "inline") {
+                creators = parseInlineFormat(lines);
+                formatDetected = "Inline Format (Price in parentheses)";
+            } else {
+                creators = parseStandardFormat(lines);
+                formatDetected = "Standard Format (Price on next line)";
+            }
+            
+            console.log("Found", creators.length, "creators");
+            
+            if (creators.length === 0) {
+                alert("No creators found. Please check the format of your pitch list or try changing the format setting.");
+                return;
+            }
+            
+            // Display results
+            const tableBody = document.getElementById("tableBody");
+            tableBody.innerHTML = "";
+            
+            creators.forEach(creator => {
+                const row = document.createElement("tr");
+                
+                const handleCell = document.createElement("td");
+                handleCell.textContent = creator.handle;
+                
+                const priceCell = document.createElement("td");
+                priceCell.textContent = "$" + creator.price;
+                
+                const notesCell = document.createElement("td");
+                notesCell.textContent = creator.notes;
+                
+                row.appendChild(handleCell);
+                row.appendChild(priceCell);
+                row.appendChild(notesCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            document.getElementById("count").textContent = `Found ${creators.length} creators`;
+            document.getElementById("formatDetected").textContent = `Format detected: ${formatDetected}`;
+            document.getElementById("results").classList.remove("hidden");
+            
+            // Store creators for copy function
+            window.parsedCreators = creators;
+        }
+        
+        function parseStandardFormat(lines) {
+            const creators = [];
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
@@ -157,6 +243,10 @@
                                 notes = nextLine.split("-")[1].trim();
                             } else if (nextLine.includes(",")) {
                                 notes = nextLine.split(",")[1].trim();
+                            } else {
+                                // Try to remove the price part from the string to get notes
+                                const priceStr = "$" + price;
+                                notes = nextLine.replace(priceStr, "").trim();
                             }
                             console.log("Extracted notes:", notes);
                             
@@ -174,41 +264,56 @@
                 }
             }
             
-            console.log("Found", creators.length, "creators");
+            return creators;
+        }
+        
+        function parseInlineFormat(lines) {
+            const creators = [];
             
-            if (creators.length === 0) {
-                alert("No creators found. Please check the format of your pitch list.");
-                return;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Skip category headings and dividers
+                if (line.endsWith(":") || line === "/////") {
+                    console.log("Skipping category or divider:", line);
+                    continue;
+                }
+                
+                // Check if this is a TikTok URL with inline price
+                if (line.includes("tiktok.com") && line.includes("($")) {
+                    console.log("Found TikTok URL with inline price:", line);
+                    
+                    // Extract handle
+                    let handle = "";
+                    if (line.includes("@")) {
+                        handle = "@" + line.split("@")[1].split("?")[0].split(" ")[0];
+                        console.log("Extracted handle:", handle);
+                    }
+                    
+                    // Extract price
+                    let price = 0;
+                    const priceMatch = line.match(/\(\$(\d+)\)/);
+                    if (priceMatch && priceMatch[1]) {
+                        price = parseInt(priceMatch[1], 10);
+                        console.log("Extracted price:", price);
+                    }
+                    
+                    // Extract notes (everything after the price)
+                    let notes = "";
+                    if (line.includes(")")) {
+                        notes = line.split(")")[1].trim();
+                        console.log("Extracted notes:", notes);
+                    }
+                    
+                    creators.push({
+                        handle: handle,
+                        price: price,
+                        notes: notes
+                    });
+                }
             }
             
-            // Display results
-            const tableBody = document.getElementById("tableBody");
-            tableBody.innerHTML = "";
-            
-            creators.forEach(creator => {
-                const row = document.createElement("tr");
-                
-                const handleCell = document.createElement("td");
-                handleCell.textContent = creator.handle;
-                
-                const priceCell = document.createElement("td");
-                priceCell.textContent = "$" + creator.price;
-                
-                const notesCell = document.createElement("td");
-                notesCell.textContent = creator.notes;
-                
-                row.appendChild(handleCell);
-                row.appendChild(priceCell);
-                row.appendChild(notesCell);
-                
-                tableBody.appendChild(row);
-            });
-            
-            document.getElementById("count").textContent = `Found ${creators.length} creators`;
-            document.getElementById("results").classList.remove("hidden");
-            
-            // Store creators for copy function
-            window.parsedCreators = creators;
+            return creators;
         }
         
         function copyToClipboard() {
