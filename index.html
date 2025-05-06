@@ -22,6 +22,11 @@
         h1, h2 {
             color: #333;
         }
+        .subtitle {
+            color: #666;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
         textarea {
             width: 100%;
             height: 200px;
@@ -39,6 +44,7 @@
             border-radius: 4px;
             cursor: pointer;
             margin-right: 10px;
+            margin-bottom: 10px;
         }
         button:hover {
             background-color: #3a5ce5;
@@ -48,6 +54,12 @@
         }
         button.green:hover {
             background-color: #388e3c;
+        }
+        button.purple {
+            background-color: #9c27b0;
+        }
+        button.purple:hover {
+            background-color: #7b1fa2;
         }
         table {
             width: 100%;
@@ -65,27 +77,40 @@
         .hidden {
             display: none;
         }
-        .select-container {
-            margin-bottom: 10px;
+        .pitch-id {
+            margin-bottom: 15px;
         }
-        select {
+        input {
             padding: 8px;
-            border-radius: 4px;
             border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Pitch List Parser</h1>
+        <h1>Salmon Studios Pitch List Parser</h1>
+        <p class="subtitle">Adaptive parser for multiple pitch list formats</p>
         
-        <div class="select-container">
-            <label for="format">Pitch Format:</label>
-            <select id="format">
-                <option value="auto" selected>Auto-Detect</option>
-                <option value="standard">Standard Format (Price on next line)</option>
-                <option value="inline">Inline Format (Price in parentheses)</option>
-            </select>
+        <div class="pitch-id">
+            <label for="pitchId">Pitch ID (optional)</label>
+            <input type="text" id="pitchId" placeholder="PITCH-MMDDYY-XXX">
+            <p class="help-text">For your reference only - this ID won't be included in the Airtable data</p>
         </div>
         
         <div>
@@ -98,27 +123,54 @@
         <div id="results" class="hidden">
             <h2>Results</h2>
             <p id="count"></p>
-            <p id="formatDetected" style="color: #4a6cf7;"></p>
+            <p id="pitchIdDisplay"></p>
+            <p id="createdDate"></p>
             
             <button id="copyBtn" class="green">Copy for Airtable</button>
+            <button id="exportBtn" class="purple">Export to CSV</button>
             <span id="copySuccess" style="display:none; color:green; margin-left:10px;">Copied!</span>
             
             <table>
                 <thead>
                     <tr>
                         <th>Creator Handle</th>
-                        <th>Price</th>
-                        <th>Notes</th>
+                        <th>Client Price</th>
+                        <th>Special Notes</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
             </table>
+            
+            <div class="info-box">
+                <p><strong>Airtable Import Instructions:</strong></p>
+                <ol>
+                    <li>Click "Copy for Airtable" above</li>
+                    <li>Go to your Airtable table</li>
+                    <li>Select the first cell where you want to paste</li>
+                    <li>Press Ctrl+V (or Cmd+V on Mac) to paste</li>
+                    <li>Make sure your Airtable columns are in this order: Creator Handle, Client Price, Special Notes</li>
+                </ol>
+            </div>
         </div>
     </div>
 
     <script>
         document.getElementById("parseBtn").addEventListener("click", parsePitchList);
         document.getElementById("copyBtn").addEventListener("click", copyToClipboard);
+        document.getElementById("exportBtn").addEventListener("click", exportToCSV);
+        
+        // Generate a default Pitch ID
+        function generatePitchId() {
+            const date = new Date();
+            const formattedDate = `${date.getMonth()+1}${date.getDate()}${date.getFullYear().toString().slice(2)}`;
+            const randomId = Math.floor(Math.random()*1000).toString().padStart(3, '0');
+            return `PITCH-${formattedDate}-${randomId}`;
+        }
+        
+        // Auto-generate a pitch ID if the field is empty
+        if (!document.getElementById("pitchId").value) {
+            document.getElementById("pitchId").value = generatePitchId();
+        }
         
         function parsePitchList() {
             const input = document.getElementById("input").value.trim();
@@ -127,50 +179,169 @@
                 return;
             }
             
-            const formatSelect = document.getElementById("format").value;
-            
-            // Split by lines and remove empty lines
-            const lines = input.split("\n").map(line => line.trim()).filter(line => line);
-            let creators = [];
-            let formatDetected = "Not detected";
-            
-            console.log("Processing", lines.length, "lines");
-            console.log("Selected format:", formatSelect);
-            
-            // Auto-detect format
-            if (formatSelect === "auto") {
-                // Check if more than 50% of lines with TikTok URLs contain parentheses with numbers
-                const tiktokLines = lines.filter(line => line.includes("tiktok.com"));
-                const inlineFormatLines = tiktokLines.filter(line => line.match(/\(\$\d+\)/));
-                
-                if (inlineFormatLines.length > 0 && inlineFormatLines.length / tiktokLines.length >= 0.5) {
-                    console.log("Auto-detected inline format");
-                    creators = parseInlineFormat(lines);
-                    formatDetected = "Inline Format (Price in parentheses)";
-                } else {
-                    console.log("Auto-detected standard format");
-                    creators = parseStandardFormat(lines);
-                    formatDetected = "Standard Format (Price on next line)";
-                }
-            } else if (formatSelect === "inline") {
-                creators = parseInlineFormat(lines);
-                formatDetected = "Inline Format (Price in parentheses)";
-            } else {
-                creators = parseStandardFormat(lines);
-                formatDetected = "Standard Format (Price on next line)";
+            // Generate pitch ID if needed
+            if (!document.getElementById("pitchId").value) {
+                document.getElementById("pitchId").value = generatePitchId();
             }
             
-            console.log("Found", creators.length, "creators");
+            // Split by lines and clean up
+            const lines = input.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+                
+            console.log("Processing", lines.length, "lines");
+            
+            // Use the adaptive parsing approach
+            const creators = adaptiveParse(lines);
             
             if (creators.length === 0) {
-                alert("No creators found. Please check the format of your pitch list or try changing the format setting.");
+                alert("No creators found. Please check your pitch list format.");
                 return;
             }
             
             // Display results
-            const tableBody = document.getElementById("tableBody");
-            tableBody.innerHTML = "";
+            displayResults(creators);
             
+            // Store for later use
+            window.parsedCreators = creators;
+        }
+        
+        function adaptiveParse(lines) {
+            const creators = [];
+            const creatorHandles = new Set(); // To avoid duplicates
+            
+            // Process the lines in groups
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Skip category headers and dividers
+                if (line.endsWith(':') || line === '/////') {
+                    continue;
+                }
+                
+                // Extract TikTok URL and handle
+                if (line.includes('tiktok.com/')) {
+                    let handle = '';
+                    let url = '';
+                    let price = 0;
+                    let notes = '';
+                    
+                    // Extract handle from URL
+                    if (line.includes('@')) {
+                        url = line.split(' ')[0].trim(); // Get the URL part
+                        const handlePart = line.split('@')[1];
+                        handle = '@' + handlePart.split(/[\s?]/)[0].trim();
+                    }
+                    
+                    // If we already processed this creator, skip
+                    if (creatorHandles.has(handle)) {
+                        continue;
+                    }
+                    
+                    // Check for price in the same line (inline format)
+                    const inlinePrice = line.match(/\$(\d+(?:\.\d+)?)|[($](\d+(?:\.\d+)?)/);
+                    if (inlinePrice) {
+                        price = parseFloat(inlinePrice[1] || inlinePrice[2]);
+                        
+                        // Extract notes - everything after the price that's not the URL or price
+                        const priceIndex = line.indexOf('$') !== -1 ? line.indexOf('$') : line.indexOf('(');
+                        if (priceIndex > 0) {
+                            // Find the end of the price
+                            const afterPrice = line.substring(priceIndex);
+                            const priceEndMatch = afterPrice.match(/\d+(?:\.\d+)?[)]*\s*(.+)/);
+                            if (priceEndMatch && priceEndMatch[1]) {
+                                notes = priceEndMatch[1].trim();
+                            }
+                        }
+                    } 
+                    // Look for price in the next line
+                    else if (i + 1 < lines.length) {
+                        const nextLine = lines[i + 1];
+                        
+                        // If next line has a price
+                        if (nextLine.includes('$') || nextLine.match(/^\d+/)) {
+                            // Extract price
+                            const nextLinePrice = nextLine.match(/\$(\d+(?:\.\d+)?)|(?:^|\s)(\d+(?:\.\d+)?)/);
+                            if (nextLinePrice) {
+                                price = parseFloat(nextLinePrice[1] || nextLinePrice[2]);
+                                
+                                // Extract notes
+                                let noteText = '';
+                                if (nextLine.includes('-')) {
+                                    noteText = nextLine.split('-').slice(1).join('-').trim();
+                                } else if (nextLine.includes(',')) {
+                                    noteText = nextLine.split(',').slice(1).join(',').trim();
+                                } else if (nextLine.includes(' ')) {
+                                    // Extract everything after the price
+                                    const priceStr = (nextLine.includes('$') ? '$' : '') + price;
+                                    noteText = nextLine.replace(priceStr, '').trim();
+                                }
+                                
+                                notes = noteText;
+                                i++; // Skip the price line
+                            }
+                        }
+                    }
+                    
+                    // Look ahead for example links or additional notes
+                    let j = i + 1;
+                    let examples = [];
+                    
+                    while (j < lines.length) {
+                        const nextLine = lines[j].trim();
+                        
+                        // If this is the start of a new creator, stop looking
+                        if (nextLine.includes('tiktok.com/') && !nextLine.toLowerCase().includes('example')) {
+                            break;
+                        }
+                        
+                        // If this is an example or additional note
+                        if (nextLine.includes('tiktok.com/') || nextLine.toLowerCase().includes('example')) {
+                            examples.push(nextLine);
+                            i = j; // Skip this line in the outer loop
+                        } 
+                        // If this doesn't look like relevant content, stop looking
+                        else if (!nextLine.includes('$') || j > i + 3) {
+                            break;
+                        }
+                        
+                        j++;
+                    }
+                    
+                    // Add examples to notes
+                    if (examples.length > 0) {
+                        if (notes) notes += ' ';
+                        notes += 'Examples: ' + examples.join(' | ');
+                    }
+                    
+                    // Only add if we have a handle and price
+                    if (handle && price > 0) {
+                        creators.push({
+                            handle,
+                            price,
+                            notes
+                        });
+                        
+                        // Mark this handle as processed
+                        creatorHandles.add(handle);
+                    }
+                }
+            }
+            
+            return creators;
+        }
+        
+        function displayResults(creators) {
+            // Update information
+            document.getElementById("count").textContent = `Found ${creators.length} creators`;
+            document.getElementById("pitchIdDisplay").textContent = `Pitch ID: ${document.getElementById("pitchId").value}`;
+            document.getElementById("createdDate").textContent = `Created: ${new Date().toLocaleDateString()}`;
+            
+            // Clear existing table data
+            const tableBody = document.getElementById("tableBody");
+            tableBody.innerHTML = '';
+            
+            // Populate table
             creators.forEach(creator => {
                 const row = document.createElement("tr");
                 
@@ -178,7 +349,7 @@
                 handleCell.textContent = creator.handle;
                 
                 const priceCell = document.createElement("td");
-                priceCell.textContent = "$" + creator.price;
+                priceCell.textContent = '$' + creator.price;
                 
                 const notesCell = document.createElement("td");
                 notesCell.textContent = creator.notes;
@@ -190,130 +361,8 @@
                 tableBody.appendChild(row);
             });
             
-            document.getElementById("count").textContent = `Found ${creators.length} creators`;
-            document.getElementById("formatDetected").textContent = `Format detected: ${formatDetected}`;
+            // Show results
             document.getElementById("results").classList.remove("hidden");
-            
-            // Store creators for copy function
-            window.parsedCreators = creators;
-        }
-        
-        function parseStandardFormat(lines) {
-            const creators = [];
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                
-                // Skip category headings and dividers
-                if (line.endsWith(":") || line === "/////") {
-                    console.log("Skipping category or divider:", line);
-                    continue;
-                }
-                
-                // Check if this is a TikTok URL
-                if (line.includes("tiktok.com")) {
-                    console.log("Found TikTok URL:", line);
-                    let handle = "";
-                    
-                    // Try to extract handle
-                    if (line.includes("@")) {
-                        handle = "@" + line.split("@")[1].split("?")[0];
-                        console.log("Extracted handle:", handle);
-                    }
-                    
-                    // Look for price on the next line
-                    if (i + 1 < lines.length) {
-                        const nextLine = lines[i + 1];
-                        
-                        // Check if the next line has a price (contains $)
-                        if (nextLine.includes("$")) {
-                            console.log("Found price line:", nextLine);
-                            
-                            // Extract price
-                            let price = 0;
-                            const priceMatch = nextLine.match(/\$(\d+)/);
-                            if (priceMatch && priceMatch[1]) {
-                                price = parseInt(priceMatch[1], 10);
-                                console.log("Extracted price:", price);
-                            }
-                            
-                            // Extract notes (everything after the price)
-                            let notes = "";
-                            if (nextLine.includes("-")) {
-                                notes = nextLine.split("-")[1].trim();
-                            } else if (nextLine.includes(",")) {
-                                notes = nextLine.split(",")[1].trim();
-                            } else {
-                                // Try to remove the price part from the string to get notes
-                                const priceStr = "$" + price;
-                                notes = nextLine.replace(priceStr, "").trim();
-                            }
-                            console.log("Extracted notes:", notes);
-                            
-                            // Add to creators array
-                            creators.push({
-                                handle: handle,
-                                price: price,
-                                notes: notes
-                            });
-                            
-                            // Skip the processed price line
-                            i++;
-                        }
-                    }
-                }
-            }
-            
-            return creators;
-        }
-        
-        function parseInlineFormat(lines) {
-            const creators = [];
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                
-                // Skip category headings and dividers
-                if (line.endsWith(":") || line === "/////") {
-                    console.log("Skipping category or divider:", line);
-                    continue;
-                }
-                
-                // Check if this is a TikTok URL with inline price
-                if (line.includes("tiktok.com") && line.includes("($")) {
-                    console.log("Found TikTok URL with inline price:", line);
-                    
-                    // Extract handle
-                    let handle = "";
-                    if (line.includes("@")) {
-                        handle = "@" + line.split("@")[1].split("?")[0].split(" ")[0];
-                        console.log("Extracted handle:", handle);
-                    }
-                    
-                    // Extract price
-                    let price = 0;
-                    const priceMatch = line.match(/\(\$(\d+)\)/);
-                    if (priceMatch && priceMatch[1]) {
-                        price = parseInt(priceMatch[1], 10);
-                        console.log("Extracted price:", price);
-                    }
-                    
-                    // Extract notes (everything after the price)
-                    let notes = "";
-                    if (line.includes(")")) {
-                        notes = line.split(")")[1].trim();
-                        console.log("Extracted notes:", notes);
-                    }
-                    
-                    creators.push({
-                        handle: handle,
-                        price: price,
-                        notes: notes
-                    });
-                }
-            }
-            
-            return creators;
         }
         
         function copyToClipboard() {
@@ -322,7 +371,7 @@
                 return;
             }
             
-            // Create tab-separated values for Airtable
+            // Create tab-separated values for Airtable (handle, price, notes)
             let text = "";
             window.parsedCreators.forEach(creator => {
                 text += `${creator.handle}\t${creator.price}\t${creator.notes}\n`;
@@ -334,9 +383,14 @@
             // Copy to clipboard
             const textarea = document.createElement("textarea");
             textarea.value = text;
+            textarea.style.position = 'fixed'; // Make it invisible
             document.body.appendChild(textarea);
             textarea.select();
+            
+            // Copy the text
             document.execCommand("copy");
+            
+            // Clean up
             document.body.removeChild(textarea);
             
             // Show success message
@@ -345,6 +399,46 @@
             setTimeout(() => {
                 copySuccess.style.display = "none";
             }, 2000);
+        }
+        
+        function exportToCSV() {
+            if (!window.parsedCreators || window.parsedCreators.length === 0) {
+                alert("No data to export. Please parse pitch list first.");
+                return;
+            }
+            
+            // Create CSV header
+            const csvContent = [
+                ['Creator Handle', 'Client Price', 'Special Notes']
+            ];
+            
+            // Add data rows
+            window.parsedCreators.forEach(creator => {
+                csvContent.push([
+                    creator.handle,
+                    creator.price,
+                    creator.notes
+                ]);
+            });
+            
+            // Convert to CSV string
+            const csv = csvContent.map(row => 
+                row.map(cell => 
+                    typeof cell === 'string' && cell.includes(',') 
+                        ? `"${cell}"` 
+                        : cell
+                ).join(',')
+            ).join('\n');
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pitch-list-${document.getElementById("pitchId").value}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
     </script>
 </body>
