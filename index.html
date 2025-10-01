@@ -135,6 +135,7 @@
                     <tr>
                         <th>Creator Handle</th>
                         <th>Client Price</th>
+                        <th>Country</th>
                         <th>Special Notes</th>
                     </tr>
                 </thead>
@@ -148,7 +149,7 @@
                     <li>Go to your Airtable table</li>
                     <li>Select the first cell where you want to paste</li>
                     <li>Press Ctrl+V (or Cmd+V on Mac) to paste</li>
-                    <li>Make sure your Airtable columns are in this order: Creator Handle, Client Price, Special Notes</li>
+                    <li>Make sure your Airtable columns are in this order: Creator Handle, Client Price, Country, Special Notes</li>
                 </ol>
             </div>
         </div>
@@ -159,15 +160,13 @@
         document.getElementById("copyBtn").addEventListener("click", copyToClipboard);
         document.getElementById("exportBtn").addEventListener("click", exportToCSV);
         
-        // Generate a default Pitch ID
         function generatePitchId() {
             const date = new Date();
-            const formattedDate = `${date.getMonth()+1}${date.getDate()}${date.getFullYear().toString().slice(2)}`;
-            const randomId = Math.floor(Math.random()*1000).toString().padStart(3, '0');
-            return `PITCH-${formattedDate}-${randomId}`;
+            const formattedDate = String(date.getMonth()+1) + String(date.getDate()) + String(date.getFullYear()).slice(2);
+            const randomId = String(Math.floor(Math.random()*1000)).padStart(3, '0');
+            return 'PITCH-' + formattedDate + '-' + randomId;
         }
         
-        // Auto-generate a pitch ID if the field is empty
         if (!document.getElementById("pitchId").value) {
             document.getElementById("pitchId").value = generatePitchId();
         }
@@ -179,150 +178,99 @@
                 return;
             }
             
-            // Generate pitch ID if needed
             if (!document.getElementById("pitchId").value) {
                 document.getElementById("pitchId").value = generatePitchId();
             }
             
-            // Split by lines and clean up
             const lines = input.split('\n')
                 .map(line => line.trim())
                 .filter(line => line.length > 0);
                 
             console.log("Processing", lines.length, "lines");
             
-            // Use the adaptive parsing approach
-            const creators = adaptiveParse(lines);
+            const creators = parseCreators(lines);
             
             if (creators.length === 0) {
                 alert("No creators found. Please check your pitch list format.");
                 return;
             }
             
-            // Display results
             displayResults(creators);
-            
-            // Store for later use
             window.parsedCreators = creators;
         }
         
-        function adaptiveParse(lines) {
+        function parseCreators(lines) {
             const creators = [];
-            const creatorHandles = new Set(); // To avoid duplicates
+            const creatorHandles = new Set();
             
-            // Process the lines in groups
+            const countryPattern = /\b(US|UK|CA|AU|USA|United States|United Kingdom|Canada|Australia|NZ|New Zealand|EU|Europe|Asia|LATAM|Latin America|Brazil|BR|Mexico|MX|India|IN|Germany|DE|France|FR|Spain|ES|Italy|IT|Japan|JP|Korea|KR|China|CN)\b/gi;
+            
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 
-                // Skip category headers and dividers
                 if (line.endsWith(':') || line === '/////') {
                     continue;
                 }
                 
-                // Extract TikTok URL and handle
                 if (line.includes('tiktok.com/')) {
                     let handle = '';
-                    let url = '';
                     let price = 0;
+                    let country = '';
                     let notes = '';
                     
-                    // Extract handle from URL
-                    if (line.includes('@')) {
-                        url = line.split(' ')[0].trim(); // Get the URL part
-                        const handlePart = line.split('@')[1];
-                        handle = '@' + handlePart.split(/[\s?]/)[0].trim();
+                    const parts = line.split(/\s+/);
+                    const url = parts[0];
+                    
+                    if (url.includes('@')) {
+                        const handlePart = url.split('@')[1];
+                        handle = '@' + handlePart.split(/[?\/\s]/)[0].trim();
                     }
                     
-                    // If we already processed this creator, skip
                     if (creatorHandles.has(handle)) {
                         continue;
                     }
                     
-                    // Check for price in the same line (inline format)
-                    const inlinePrice = line.match(/\$(\d+(?:\.\d+)?)|[($](\d+(?:\.\d+)?)/);
-                    if (inlinePrice) {
-                        price = parseFloat(inlinePrice[1] || inlinePrice[2]);
-                        
-                        // Extract notes - everything after the price that's not the URL or price
-                        const priceIndex = line.indexOf('$') !== -1 ? line.indexOf('$') : line.indexOf('(');
-                        if (priceIndex > 0) {
-                            // Find the end of the price
-                            const afterPrice = line.substring(priceIndex);
-                            const priceEndMatch = afterPrice.match(/\d+(?:\.\d+)?[)]*\s*(.+)/);
-                            if (priceEndMatch && priceEndMatch[1]) {
-                                notes = priceEndMatch[1].trim();
+                    const restOfLine = parts.slice(1).join(' ').trim();
+                    
+                    if (restOfLine) {
+                        const priceMatch = restOfLine.match(/\$?(\d+(?:\.\d+)?k?)/i);
+                        if (priceMatch) {
+                            let priceStr = priceMatch[1].toLowerCase();
+                            if (priceStr.includes('k')) {
+                                price = parseFloat(priceStr.replace('k', '')) * 1000;
+                            } else {
+                                price = parseFloat(priceStr);
                             }
                         }
-                    } 
-                    // Look for price in the next line
-                    else if (i + 1 < lines.length) {
-                        const nextLine = lines[i + 1];
                         
-                        // If next line has a price
-                        if (nextLine.includes('$') || nextLine.match(/^\d+/)) {
-                            // Extract price
-                            const nextLinePrice = nextLine.match(/\$(\d+(?:\.\d+)?)|(?:^|\s)(\d+(?:\.\d+)?)/);
-                            if (nextLinePrice) {
-                                price = parseFloat(nextLinePrice[1] || nextLinePrice[2]);
-                                
-                                // Extract notes
-                                let noteText = '';
-                                if (nextLine.includes('-')) {
-                                    noteText = nextLine.split('-').slice(1).join('-').trim();
-                                } else if (nextLine.includes(',')) {
-                                    noteText = nextLine.split(',').slice(1).join(',').trim();
-                                } else if (nextLine.includes(' ')) {
-                                    // Extract everything after the price
-                                    const priceStr = (nextLine.includes('$') ? '$' : '') + price;
-                                    noteText = nextLine.replace(priceStr, '').trim();
-                                }
-                                
-                                notes = noteText;
-                                i++; // Skip the price line
-                            }
-                        }
-                    }
-                    
-                    // Look ahead for example links or additional notes
-                    let j = i + 1;
-                    let examples = [];
-                    
-                    while (j < lines.length) {
-                        const nextLine = lines[j].trim();
-                        
-                        // If this is the start of a new creator, stop looking
-                        if (nextLine.includes('tiktok.com/') && !nextLine.toLowerCase().includes('example')) {
-                            break;
+                        const countryMatch = restOfLine.match(countryPattern);
+                        if (countryMatch) {
+                            country = countryMatch[0].toUpperCase();
                         }
                         
-                        // If this is an example or additional note
-                        if (nextLine.includes('tiktok.com/') || nextLine.toLowerCase().includes('example')) {
-                            examples.push(nextLine);
-                            i = j; // Skip this line in the outer loop
-                        } 
-                        // If this doesn't look like relevant content, stop looking
-                        else if (!nextLine.includes('$') || j > i + 3) {
-                            break;
+                        let remainingText = restOfLine;
+                        
+                        if (priceMatch) {
+                            remainingText = remainingText.replace(priceMatch[0], '').trim();
                         }
                         
-                        j++;
+                        if (countryMatch) {
+                            remainingText = remainingText.replace(countryMatch[0], '').trim();
+                        }
+                        
+                        notes = remainingText
+                            .replace(/^[\s\t-]+|[\s\t-]+$/g, '')
+                            .replace(/\s+/g, ' ')
+                            .trim();
                     }
                     
-                    // Add examples to notes
-                    if (examples.length > 0) {
-                        if (notes) notes += ' ';
-                        notes += 'Examples: ' + examples.join(' | ');
-                    }
-                    
-                    // Only add if we have a handle and price
                     if (handle && price > 0) {
                         creators.push({
-                            handle,
-                            price,
-                            notes
+                            handle: handle,
+                            price: price,
+                            country: country,
+                            notes: notes
                         });
-                        
-                        // Mark this handle as processed
                         creatorHandles.add(handle);
                     }
                 }
@@ -332,16 +280,13 @@
         }
         
         function displayResults(creators) {
-            // Update information
-            document.getElementById("count").textContent = `Found ${creators.length} creators`;
-            document.getElementById("pitchIdDisplay").textContent = `Pitch ID: ${document.getElementById("pitchId").value}`;
-            document.getElementById("createdDate").textContent = `Created: ${new Date().toLocaleDateString()}`;
+            document.getElementById("count").textContent = 'Found ' + creators.length + ' creators';
+            document.getElementById("pitchIdDisplay").textContent = 'Pitch ID: ' + document.getElementById("pitchId").value;
+            document.getElementById("createdDate").textContent = 'Created: ' + new Date().toLocaleDateString();
             
-            // Clear existing table data
             const tableBody = document.getElementById("tableBody");
             tableBody.innerHTML = '';
             
-            // Populate table
             creators.forEach(creator => {
                 const row = document.createElement("tr");
                 
@@ -351,17 +296,20 @@
                 const priceCell = document.createElement("td");
                 priceCell.textContent = '$' + creator.price;
                 
+                const countryCell = document.createElement("td");
+                countryCell.textContent = creator.country;
+                
                 const notesCell = document.createElement("td");
                 notesCell.textContent = creator.notes;
                 
                 row.appendChild(handleCell);
                 row.appendChild(priceCell);
+                row.appendChild(countryCell);
                 row.appendChild(notesCell);
                 
                 tableBody.appendChild(row);
             });
             
-            // Show results
             document.getElementById("results").classList.remove("hidden");
         }
         
@@ -371,29 +319,23 @@
                 return;
             }
             
-            // Create tab-separated values for Airtable (handle, price, notes)
             let text = "";
             window.parsedCreators.forEach(creator => {
-                text += `${creator.handle}\t${creator.price}\t${creator.notes}\n`;
+                text += creator.handle + '\t' + creator.price + '\t' + creator.country + '\t' + creator.notes + '\n';
             });
             
-            // Remove last newline
             text = text.trim();
             
-            // Copy to clipboard
             const textarea = document.createElement("textarea");
             textarea.value = text;
-            textarea.style.position = 'fixed'; // Make it invisible
+            textarea.style.position = 'fixed';
             document.body.appendChild(textarea);
             textarea.select();
             
-            // Copy the text
             document.execCommand("copy");
             
-            // Clean up
             document.body.removeChild(textarea);
             
-            // Show success message
             const copySuccess = document.getElementById("copySuccess");
             copySuccess.style.display = "inline";
             setTimeout(() => {
@@ -407,35 +349,32 @@
                 return;
             }
             
-            // Create CSV header
             const csvContent = [
-                ['Creator Handle', 'Client Price', 'Special Notes']
+                ['Creator Handle', 'Client Price', 'Country', 'Special Notes']
             ];
             
-            // Add data rows
             window.parsedCreators.forEach(creator => {
                 csvContent.push([
                     creator.handle,
                     creator.price,
+                    creator.country,
                     creator.notes
                 ]);
             });
             
-            // Convert to CSV string
             const csv = csvContent.map(row => 
                 row.map(cell => 
                     typeof cell === 'string' && cell.includes(',') 
-                        ? `"${cell}"` 
+                        ? '"' + cell + '"'
                         : cell
                 ).join(',')
             ).join('\n');
             
-            // Create download link
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.setAttribute('href', url);
-            a.setAttribute('download', `pitch-list-${document.getElementById("pitchId").value}.csv`);
+            a.setAttribute('download', 'pitch-list-' + document.getElementById("pitchId").value + '.csv');
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
